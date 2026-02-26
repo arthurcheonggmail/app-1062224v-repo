@@ -8,7 +8,7 @@ echo "Ensuring apache2 installed and running"
 docker exec $CONTAINER puppet resource package apache2 ensure=installed
 docker exec $CONTAINER puppet resource service apache2 ensure=running enable=true
 
-echo "Cleaning /tmp/work/$POLITE_ID"
+echo "Cleaning /tmp/work/1062224v"
 docker exec $CONTAINER rm -rf /tmp/work/1062224v
 docker exec $CONTAINER mkdir -p /tmp/work/1062224v
 
@@ -19,4 +19,4 @@ docker exec $CONTAINER git clone $REPO_URL /tmp/work/1062224v/repo || true
 echo "Replacing index.html using puppet resource"
 docker exec $CONTAINER puppet resource file /var/www/html/index.html \
   ensure=present \
-  source=/tmp/work/$POLITE_ID/repo/new_1062224v_index.html
+  source=/tmp/work/1062224v/repo/new_1062224v_index.html
