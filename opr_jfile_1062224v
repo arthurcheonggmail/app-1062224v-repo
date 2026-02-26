@@ -1,0 +1,92 @@
+pipeline {
+    agent any
+
+    stages {
+
+        stage('stg1-1062224v') {
+            steps {
+                echo "stg1-1062224v: Preparation check passes"
+            }
+        }
+
+        stage('stg2-1062224v') {
+            steps {
+                script {
+                    def rc = sh(script: "curl -sf http://localhost:33100 >/dev/null", returnStatus: true)
+
+                    if (rc == 0) {
+                        echo "stg2-1062224v: testsvr website is running"
+                        input message: "Proceed to update testsvr server?"
+                    } else {
+                        echo "stg2-1062224v: testsvr website is down"
+                        error("Abort because testsvr website is down")
+                    }
+                }
+            }
+        }
+
+        stage('stg3-1062224v') {
+            steps {
+                sh "docker rmi testsvr_backup_1062224v || true"
+                sh "docker commit testsvr_1062224v testsvr_backup_1062224v"
+
+                sh "chmod +x opr_script_1062224v"
+                sh "./opr_script_1062224v testsvr_1062224v"
+
+                echo "stg3-1062224v: testsvr is backup and updated"
+            }
+        }
+
+        stage('stg4-1062224v') {
+            steps {
+                script {
+                    def rc = sh(script: "curl -sf http://localhost:33100 >/dev/null", returnStatus: true)
+
+                    if (rc == 0) {
+                        echo "stg4-1062224v: testsvr website is running after update"
+                        input message: "Proceed to update appsvr server?"
+                    } else {
+                        echo "stg4-1062224v: testsvr website is down"
+                        error("Abort because testsvr website is down after update")
+                    }
+                }
+            }
+        }
+
+        stage('stg5-1062224v') {
+            steps {
+                sh "docker rmi appsvr_backup_1062224v || true"
+                sh "docker commit appsvr_1062224v appsvr_backup_1062224v"
+
+                sh "./opr_script_1062224v appsvr_1062224v"
+
+                echo "stg5-1062224v: appsvr web server is backup and updated"
+            }
+        }
+
+        stage('stg6-1062224v') {
+            steps {
+                script {
+                    def rc = sh(script: "curl -sf http://localhost:33200 >/dev/null", returnStatus: true)
+
+                    if (rc == 0) {
+                        echo "stg6-1062224v: appsvr website is operational"
+                    } else {
+                        def choice = input(
+                            message: "Production website is down. Choose an action:",
+                            parameters: [
+                                choice(name: 'ACTION', choices: ['Trigger roll back', 'Troubleshooting'], description: '')
+                            ]
+                        )
+
+                        if (choice == 'Trigger roll back') {
+                            echo "stg6-1062224v: Production website is rolling back"
+                        } else {
+                            echo "stg6-1062224v: Troubleshooting of Production website starts"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
